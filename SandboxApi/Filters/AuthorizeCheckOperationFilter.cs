@@ -20,8 +20,14 @@ namespace SandboxApi.Filters
 
             if (hasAuthorize)
             {
-                operation.Responses.Add("401", new Response { Description = "Unauthorized" });
-                operation.Responses.Add("403", new Response { Description = "Forbidden" });
+                hasAuthorize =
+                    context.ControllerActionDescriptor.FilterDescriptors.All(x => x.Filter.GetType() != typeof(AllowAnonymousFilter));
+                if (hasAuthorize)
+                {
+                    operation.Responses.Add("401", new Response { Description = "Unauthorized. May contain header: www-authenticate →Bearer error=\"invalid_token\", error_description=\"The token is expired\". Then wee need to refresh token" });
+                    operation.Responses.Add("403", new Response { Description = "Forbidden" });
+                }
+                
             }
         }
     }

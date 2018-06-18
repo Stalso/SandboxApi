@@ -31,7 +31,8 @@ namespace SandboxApi.Filters
                             Name = "grant_type",
                             Required = true,
                             Type = "string",
-                            In = "formData"
+                            In = "formData",
+                            Description = "Must be `password` (if we want to login) or `refresh_token` (if we want to refresh access token)"
                         },
                         new NonBodyParameter()
                         {
@@ -45,6 +46,21 @@ namespace SandboxApi.Filters
                             Type = "string",
                             In = "formData"
                         },
+                        new NonBodyParameter()
+                        {
+                            Name = "scope",
+                            Type = "string",
+                            In = "formData",
+                            Description = "To get full information about user we should pass `openid email profile offline_access roles`. This scopes will give us three tokens. May use only with password flow"
+                        },
+                        new NonBodyParameter()
+                        {
+                            Name = "refresh_token",
+                            Type = "string",
+                            In = "formData",
+                            Description = "Must enter refresh token here (use with `refresh_token` grant tupe)"
+                        },
+
                     };
                 }
                 
