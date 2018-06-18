@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenIddict.Core;
 using SandboxApi.Models;
+using SandboxApi.Models.Settings;
 using SandboxApi.ViewModels.Account;
 
 namespace SandboxApi.Controllers
@@ -22,17 +23,20 @@ namespace SandboxApi.Controllers
     public class AuthorizationController : ControllerBase
     {
         private readonly IOptions<IdentityOptions> _identityOptions;
+        private readonly IOptions<JwtOptions> _jwtOptions;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AuthorizationController(
             IOptions<IdentityOptions> identityOptions,
+            IOptions<JwtOptions> jwtOptions,
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager)
         {
             _identityOptions = identityOptions;
             _signInManager = signInManager;
             _userManager = userManager;
+            _jwtOptions = jwtOptions;
         }
 
         [Consumes("application/x-www-form-urlencoded")]
@@ -145,7 +149,7 @@ namespace SandboxApi.Controllers
                 }.Intersect(request.GetScopes()));
             }
 
-            ticket.SetResources("resource_server");
+            ticket.SetResources(_jwtOptions.Value.Audience);
 
             // Note: by default, claims are NOT automatically included in the access and identity tokens.
             // To allow OpenIddict to serialize them, you must attach them a destination, that specifies

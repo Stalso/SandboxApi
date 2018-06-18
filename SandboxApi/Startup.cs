@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Reflection.Metadata;
+using System.Text;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
 using Microsoft.AspNetCore.Builder;
@@ -18,6 +19,7 @@ using Microsoft.IdentityModel.Tokens;
 using SandboxApi.Data;
 using SandboxApi.Filters;
 using SandboxApi.Models;
+using SandboxApi.Models.Settings;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -25,7 +27,7 @@ namespace SandboxApi
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IHostingEnvironment env,IConfiguration configuration)
         {
             Configuration = configuration;
         }
@@ -35,6 +37,7 @@ namespace SandboxApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<JwtOptions>(Configuration.GetSection("JWT"));
             services.AddCustomMVC(Configuration)
                 .AddCustomDbContext(Configuration)
                 .AddCustomIdentity(Configuration)
@@ -44,7 +47,6 @@ namespace SandboxApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            var pathBase = Configuration["PATH_BASE"];
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -65,7 +67,7 @@ namespace SandboxApi
                 .UseSwaggerUI(c =>
                 {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "SandboxApi.API V1");
-                    // c.RoutePrefix = !string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty;
+                    c.RoutePrefix = String.Empty;
                 });
 
             app.UseWelcomePage();
@@ -99,6 +101,8 @@ namespace SandboxApi
                 options.Password.RequireLowercase = false;
             });
 
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:SigningKey"]));
             // Register the OpenIddict services.
             services.AddOpenIddict<Guid>(options =>
             {
@@ -124,7 +128,13 @@ namespace SandboxApi
                 // encrypted format, the following lines are required:
                 //
                 options.UseJsonWebTokens();
-                options.AddEphemeralSigningKey();
+                if (!Double.TryParse(configuration["JWT:AccessTokenLifetime"], out var accessTokenLifetime))
+                {
+                    accessTokenLifetime = 3600;
+                }
+                options.SetAccessTokenLifetime(TimeSpan.FromSeconds(accessTokenLifetime));
+                options.AddSigningKey(securityKey);
+                // options.AddEphemeralSigningKey();
             });
 
 
@@ -137,18 +147,21 @@ namespace SandboxApi
             services.AddAuthentication()
                 .AddJwtBearer(options =>
                 {
-                    options.Authority = "http://localhost:64187/";
-                    options.Audience = "resource_server";
+                    options.Authority = configuration["JWT:Authority"];
+                    options.Audience = configuration["JWT:Audience"];
                     options.RequireHttpsMetadata = false;
+                 
+
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         NameClaimType = OpenIdConnectConstants.Claims.Subject,
-                        RoleClaimType = OpenIdConnectConstants.Claims.Role
+                        RoleClaimType = OpenIdConnectConstants.Claims.Role,
+                        IssuerSigningKey = securityKey,
+                        RequireExpirationTime = true,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(0)
                     };
                 });
-
-            //services.AddAuthentication()
-            //    .AddOAuthValidation();
 
             return services;
         }

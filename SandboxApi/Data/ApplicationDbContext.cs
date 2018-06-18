@@ -20,6 +20,12 @@ namespace SandboxApi.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Register the entity sets needed by OpenIddict.
+            // Note: use the generic overload if you need
+            // to replace the default OpenIddict entities.
+            // NOTE for some reason it does not work when we register it in Startup
+            // This issue is reproduceed only if we use custom Key for db ents
             builder.UseOpenIddict<Guid>();
         }
     }
