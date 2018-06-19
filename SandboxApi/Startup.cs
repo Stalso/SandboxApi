@@ -61,14 +61,13 @@ namespace SandboxApi
 
             app.UseCors("CorsPolicy");
 
-            app.UseMvcWithDefaultRoute();
-
             app.UseSwagger()
                 .UseSwaggerUI(c =>
                 {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "SandboxApi.API V1");
-                    c.RoutePrefix = String.Empty;
                 });
+
+            app.UseMvcWithDefaultRoute();
 
             app.UseWelcomePage();
         }
